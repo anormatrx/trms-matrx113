@@ -90,28 +90,69 @@ def classify(text):
         return "consulting"
     return max(scores, key=scores.get)
 
+def classify_all(text):
+    """رجع كل التصنيفات مع نسب الثقة"""
+    text = text.lower()
+    scores = {}
+    for intent, patterns in INTENT_PATTERNS.items():
+        scores[intent] = sum(1 for p in patterns if p.lower() in text)
+    return scores
+
 # ================= Task Assignment =================
 
 def assign_task(text, priority="medium"):
     conn = get_conn()
-    task_type = classify(text)
-    agent = conn.execute(
-        "SELECT id, name FROM agents WHERE role=? LIMIT 1",
-        (task_type,)
-    ).fetchone()
-    if not agent:
+    scores = classify_all(text)
+    top_score = max(scores.values())
+    # إذا المهمة فيها أكثر من تصنيف بنفس القوة → شطر المهمة
+    multiple_intents = [k for k, v in scores.items() if v > 0 and v >= top_score * 0.6]
+    assignments = []
+
+    if len(multiple_intents) > 1:
+        # شطر المهمة على أكثر من وكيل
+        intent_labels = {
+            "design": "تصميم",
+            "build": "بناء وتشغيل",
+            "consulting": "استشارة وتحليل",
+            "prompt": "هندسة برومت"
+        }
+        for intent in multiple_intents:
+            agent = conn.execute(
+                "SELECT id, name FROM agents WHERE role=? LIMIT 1",
+                (intent,)
+            ).fetchone()
+            if agent:
+                label = intent_labels.get(intent, intent)
+                sub_task = f"[{label}] {text}"
+                conn.execute(
+                    """INSERT INTO tasks (agent_id, request, task_type, status, priority)
+                       VALUES (?,?,?,'pending',?)""",
+                    (agent["id"], sub_task, intent, priority)
+                )
+                conn.execute("UPDATE agents SET status='busy' WHERE id=?", (agent["id"],))
+                assignments.append((agent["name"], intent))
+    else:
+        # مهمة واحدة لوكيل واحد
+        task_type = max(scores, key=scores.get)
         agent = conn.execute(
-            "SELECT id, name FROM agents WHERE role='consulting' LIMIT 1"
+            "SELECT id, name FROM agents WHERE role=? LIMIT 1",
+            (task_type,)
         ).fetchone()
-    conn.execute(
-        """INSERT INTO tasks (agent_id, request, task_type, status, priority)
-           VALUES (?,?,?,'pending',?)""",
-        (agent["id"], text, task_type, priority)
-    )
-    conn.execute("UPDATE agents SET status='busy' WHERE id=?", (agent["id"],))
+        if not agent:
+            agent = conn.execute(
+                "SELECT id, name FROM agents WHERE role='consulting' LIMIT 1"
+            ).fetchone()
+        conn.execute(
+            """INSERT INTO tasks (agent_id, request, task_type, status, priority)
+               VALUES (?,?,?,'pending',?)""",
+            (agent["id"], text, task_type, priority)
+        )
+        conn.execute("UPDATE agents SET status='busy' WHERE id=?", (agent["id"],))
+        assignments.append((agent["name"], task_type))
+
     conn.commit()
     conn.close()
-    return agent["name"], task_type
+    return assignments
 
 def complete_task(task_id, result=""):
     conn = get_conn()
