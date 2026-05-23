@@ -8,44 +8,43 @@
 - الإخراج: رد عربي، كود إنجليزي
 - لا تسأل توضيح — نفذ مباشر
 
-## Agents System — كل وكيل مستقل بمجاله
+## Coordinator — الموزع الذكي 🤖🎯
+
+كل طلب يدخل يمر على **الـ Coordinator** اللي يصنف المهمة ويوجهها للوكيل المختص:
 
 ```
-User Request
-    |
-    ├── 🎨 Design Agent      → "صمم واجهة/تصميم/قالب"
-    ├── 🔍 Consulting Agent  → "راجع/استشر/حلل/هل في أخطاء؟"
-    ├── 🏗️ Build Agent       → "ابني/شغل/نصب مشروع"
-    └── 🧠 Prompt Engineer   → "حسّن/صمم/اكتب برومت"
+User: "صمم واجهة متجر"
+    ↓ Coordinator يحلل النص
+    ↓ "تصميم" ← Design Agent
+    
+User: "ابني API"
+    ↓ "بناء" ← Build Agent
+    
+User: "راجع مشروعي"
+    ↓ "مراجعة" ← Consulting Agent
+    
+User: "حسّن برومت"
+    ↓ "prompt" ← Prompt Engineer
 ```
 
-### 🎨 Design Agent (`design-master`)
-- تصميم واجهات HTML+CSS+JS فخمة
-- Glassmorphism, Neon, Minimal, Dark Premium
-- مكتبات CDN (Bootstrap, GSAP, Three.js, AOS, Chart.js)
-- **يُستخدم عندما:** يقول المستخدم "صمم/جمّل/حسّن الواجهة"
+## Agents — وكلاء متخصصين مستقلين
 
-### 🔍 Consulting Agent (`consulting`)
-- استشارات وتحليل ومراجعة
-- Code review, architecture advice, security audit
-- **يُستخدم عندما:** يقول المستخدم "راجع/استشر/حلل/هل في أخطاء؟/عطني رأيك"
+| Agent | دوره | ينفذ لما المستخدم يقول |
+|-------|------|----------------------|
+| 🎨 **Design Agent** | تصميم واجهات UI/UX | "صمم/جمّل/قالب/واجهة" |
+| 🏗️ **Build Agent** | بناء مشاريع، تشغيل سيرفرات | "ابني/شغل/API/سيرفر" |
+| 🔍 **Consulting Agent** | استشارات، تحليل، مراجعة | "راجع/استشر/حلل/شلون" |
+| 🧠 **Prompt Engineer** | هندسة برومتات وتحسين صيغ | "برومت/حسّن هال/prompt" |
 
-### 🏗️ Build Agent (`smart-builder`)
-- بناء مشاريع كاملة وتشغيلها
-- اكتشاف وحل المشاكل (ports, libs, paths, errors)
-- **يُستخدم عندما:** يقول المستخدم "ابني/شغل/نصب/طوّر مشروع"
-
-### 🧠 Prompt Engineer (`prompt-engineer`)
-- هندسة الصيغ وتحسين البرومت
-- System prompts, Chain of Thought, Few-shot
-- **يُستخدم عندما:** يقول المستخدم "حسّن/صمم/اكتب/طوّر برومت"
+## Coordinator Commands
+- أي كلام تكتبه → يصنفه ويوجهه للوكيل المناسب
+- `حالة` — حالة الوكلاء (🟢 idle, 🟡 busy, 🔴 error)
+- `احصائيات` — إحصائيات المهام لكل وكيل
+- `المهام [وكيل]` — عرض مهام وكيل معين
 
 ## Database — توزيع المهام
-- `شخص [اسم]` — إضافة شخص
-- `مهمة [شخص] [عنوان] [وصف]` — إضافة مهمة لشخص
-- `المهام [شخص]` — عرض المهام
-- `حالة [رقم] [pending/in_progress/done]` — تحديث الحالة
-- `احصائيات` — إحصائيات
+`Database/coordinator.py` — الموزع الذكي: يصنف، يوزع، يتتبع
+`Database/task_manager.py` — إدارة الأشخاص والمهام
 
 ## Commands
 - `/review` — مراجعة الكود
@@ -54,15 +53,3 @@ User Request
 - `/lint` — تشغيل linter
 - `/init-project` — تهيئة مشروع
 - `/telegram` — تشغيل بوت Telegram
-
-## أدوار إضافية
-- `admin-mouse` — تحكم كامل بالجهاز (ماوس، متصفح، شاشة)
-- `messaging` — Telegram + WhatsApp
-- `git-workflow` — Git
-- `data-analysis` — تحليل بيانات pandas
-- `ai-development` — تطوير AI (Ollama, LangChain)
-
-## ملاحظات
-- كل وكيل مستقل بذاته — ما يتداخل مع الثاني
-- كلمن وعملته، كلمن يعرف شغلة
-- قاعدة البيانات للمسؤوليات والتوزيع
